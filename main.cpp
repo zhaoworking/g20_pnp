@@ -10,7 +10,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
-#include "sophus/se3.h"
+#include "sophus/se3.hpp"
 using namespace cv;
 using namespace std;
 // 相机内参
@@ -92,7 +92,7 @@ Eigen::MatrixXd findWholeJacobian(Eigen::MatrixXd x)
     ans.setZero();
     Eigen::VectorXd v_temp(6);
     v_temp=x.block(0,0,6,1);
-    Sophus::SE3 SE3_temp=Sophus::SE3::exp(v_temp);
+    Sophus::SE3d SE3_temp=Sophus::SE3d::exp(v_temp);
     Eigen::Matrix<double,4,4> Pose = SE3_temp.matrix();
     for(int i=0;i<size_P;i++){
         //Block of size (p,q), starting at (i,j)
@@ -128,7 +128,7 @@ Eigen::Matrix<double ,Eigen::Dynamic,1> findCostFunction(Eigen::MatrixXd x, std:
     //把李代数转化为矩阵 Pose为变换矩阵
     Eigen::VectorXd v_temp(6);
     v_temp=x.block(0,0,6,1);
-    Sophus::SE3 SE3_temp=Sophus::SE3::exp(v_temp);
+    Sophus::SE3d SE3_temp=Sophus::SE3d::exp(v_temp);
     Eigen::Matrix<double,4,4> Pose = SE3_temp.matrix();
 
     ans.resize(2*size_P,1);
@@ -163,7 +163,7 @@ void bundleAdjustment(std::vector<cv::Point3d> v_P3d,std::vector<cv::Point2d> v_
     //状态量x初始化
     Eigen::Matrix<double ,3,3> R=T.block<3,3>(0,0);
     Eigen::Matrix<double ,3,1> t=T.block<3,1>(0,3);
-    Sophus::SE3 XI(R,t);//位姿->ξ
+    Sophus::SE3d XI(R,t);//位姿->ξ
     //cout<<"位姿："<<XI.log().transpose()<<endl;
     x.block(0,0,6,1)=XI.log();       //位姿的李代数
     for(int i=0;i<v_P3d.size();i++){ //3D点坐标
@@ -191,12 +191,12 @@ void bundleAdjustment(std::vector<cv::Point3d> v_P3d,std::vector<cv::Point2d> v_
         Eigen::MatrixXd delt_x=H.colPivHouseholderQr().solve(g);
         ///李代数相加需要添加一些余项，转化为R再相乘，代替加法,详见14讲 72页；
         ///把SE3上的李代数转化为4x4矩阵
-        Eigen::Matrix4d Pos_Matrix = Sophus::SE3::exp(x.block(0,0,6,1)).matrix();
-        Eigen::Matrix4d Pos_update_Matrix = Sophus::SE3::exp(delt_x.block(0,0,6,1)).matrix();
+        Eigen::Matrix4d Pos_Matrix = Sophus::SE3d::exp(x.block(0,0,6,1)).matrix();
+        Eigen::Matrix4d Pos_update_Matrix = Sophus::SE3d::exp(delt_x.block(0,0,6,1)).matrix();
         ///矩阵更新
         Pos_Matrix = Pos_Matrix * Pos_update_Matrix;
         ///转化为李代数
-        Sophus::SE3 new_Pos_se = Sophus::SE3(Pos_Matrix.block<3,3>(0,0),Pos_Matrix.block<3,1>(0,3));
+        Sophus::SE3d new_Pos_se = Sophus::SE3d(Pos_Matrix.block<3,3>(0,0),Pos_Matrix.block<3,1>(0,3));
         ///更新姿态
         x = x + delt_x;
         x.block(0,0,6,1)=new_Pos_se.log();
@@ -204,7 +204,7 @@ void bundleAdjustment(std::vector<cv::Point3d> v_P3d,std::vector<cv::Point2d> v_
         //--------------------在原图相上画出观测和预测的坐标-------------------------------------
         Eigen::VectorXd v_temp(6);
         v_temp=x.block(0,0,6,1);
-        Sophus::SE3 SE3_temp=Sophus::SE3::exp(v_temp);
+        Sophus::SE3d SE3_temp=Sophus::SE3d::exp(v_temp);
         Eigen::Matrix<double,4,4> Pose = SE3_temp.matrix();
         cout<<"POSE:"<<endl<<Pose<<endl;
         cv::Mat temp_Mat=img.clone();
@@ -240,114 +240,115 @@ void bundleAdjustment(std::vector<cv::Point3d> v_P3d,std::vector<cv::Point2d> v_
 void show(){
 
 }
+#if 0
+// int main (int argc, char * argv[]) {
+//     if(argc!=4) {
+//         cout<<"\033[31m"<<"INPUT ERROR !"<<"\033[32m"<<"Please Input Like: 1.png 2.png 3.png  --(1 is the first image,2 is the second ,3 is depth image)"<<"\033[37m"<<endl;
+//         return -1;
+//     }
+//     string imag1 = argv[1];
+//     string imag2 = argv[2];
+//     string imag3 = argv[3];
+//     //-- 设置相机内参
+//     camMatrix(0,0)=525.0;
+//     camMatrix(1,1)=525.0;
+//     camMatrix(0,2)=319.5;
+//     camMatrix(1,2)=239.5;
+//     camMatrix(2,2)=1.0;
+//     //-- 读取图像
+//     Mat img_1 = imread (imag1);
+//     Mat img_2 = imread (imag2);
+//     Mat img_depth = imread(imag3);
+//     //-- 初始化
+//     std::vector<KeyPoint> keypoints_1, keypoints_2;
+//     Mat descriptors_1, descriptors_2;
+//     Ptr<FeatureDetector> detector = ORB::create(500);
+//     Ptr<DescriptorExtractor> descriptor = ORB::create();
+//     Ptr<DescriptorMatcher> matcher  = DescriptorMatcher::create ( "BruteForce-Hamming" );
 
-int main (int argc, char * argv[]) {
-    if(argc!=4) {
-        cout<<"\033[31m"<<"INPUT ERROR !"<<"\033[32m"<<"Please Input Like: 1.png 2.png 3.png  --(1 is the first image,2 is the second ,3 is depth image)"<<"\033[37m"<<endl;
-        return -1;
-    }
-    string imag1 = argv[1];
-    string imag2 = argv[2];
-    string imag3 = argv[3];
-    //-- 设置相机内参
-    camMatrix(0,0)=525.0;
-    camMatrix(1,1)=525.0;
-    camMatrix(0,2)=319.5;
-    camMatrix(1,2)=239.5;
-    camMatrix(2,2)=1.0;
-    //-- 读取图像
-    Mat img_1 = imread (imag1);
-    Mat img_2 = imread (imag2);
-    Mat img_depth = imread(imag3);
-    //-- 初始化
-    std::vector<KeyPoint> keypoints_1, keypoints_2;
-    Mat descriptors_1, descriptors_2;
-    Ptr<FeatureDetector> detector = ORB::create(500);
-    Ptr<DescriptorExtractor> descriptor = ORB::create();
-    Ptr<DescriptorMatcher> matcher  = DescriptorMatcher::create ( "BruteForce-Hamming" );
+//     //-- 第一步:检测 Oriented FAST 角点位置
+//     double t = (double)cv::getTickCount();
+//     detector->detect ( img_1,keypoints_1 );
+//     detector->detect ( img_2,keypoints_2 );
+//     //-- 第二步:根据角点位置计算 BRIEF 描述子
+//     descriptor->compute ( img_1, keypoints_1, descriptors_1 );
+//     descriptor->compute ( img_2, keypoints_2, descriptors_2 );
+//     //-- 第三步:对两幅图像中的BRIEF描述子进行匹配，使用 Hamming 距离
+//     vector<DMatch> matches;
+//     matcher->match ( descriptors_1, descriptors_2, matches );
 
-    //-- 第一步:检测 Oriented FAST 角点位置
-    double t = (double)cv::getTickCount();
-    detector->detect ( img_1,keypoints_1 );
-    detector->detect ( img_2,keypoints_2 );
-    //-- 第二步:根据角点位置计算 BRIEF 描述子
-    descriptor->compute ( img_1, keypoints_1, descriptors_1 );
-    descriptor->compute ( img_2, keypoints_2, descriptors_2 );
-    //-- 第三步:对两幅图像中的BRIEF描述子进行匹配，使用 Hamming 距离
-    vector<DMatch> matches;
-    matcher->match ( descriptors_1, descriptors_2, matches );
+//     //-- 第四步:匹配点对筛选
+//     double min_dist=10000, max_dist=0;
 
-    //-- 第四步:匹配点对筛选
-    double min_dist=10000, max_dist=0;
+//     //找出所有匹配之间的最小距离和最大距离, 即是最相似的和最不相似的两组点之间的距离
+//     for ( int i = 0; i < descriptors_1.rows; i++ )
+//     {
+//         double dist = matches[i].distance;
+//         if ( dist < min_dist ) min_dist = dist;
+//         if ( dist > max_dist ) max_dist = dist;
+//     }
 
-    //找出所有匹配之间的最小距离和最大距离, 即是最相似的和最不相似的两组点之间的距离
-    for ( int i = 0; i < descriptors_1.rows; i++ )
-    {
-        double dist = matches[i].distance;
-        if ( dist < min_dist ) min_dist = dist;
-        if ( dist > max_dist ) max_dist = dist;
-    }
+//     printf ( "-- Max dist : %f \n", max_dist );
+//     printf ( "-- Min dist : %f \n", min_dist );
 
-    printf ( "-- Max dist : %f \n", max_dist );
-    printf ( "-- Min dist : %f \n", min_dist );
+//     //当描述子之间的距离大于两倍的最小距离时,即认为匹配有误.但有时候最小距离会非常小,设置一个经验值30作为下限.
+//     std::vector< DMatch > good_matches;
+//     for ( int i = 0; i < descriptors_1.rows; i++ )
+//     {
+//         if ( matches[i].distance <= max ( 2*min_dist, 30.0 ) )
+//         {
+//             good_matches.push_back ( matches[i] );
+//         }
+//     }
 
-    //当描述子之间的距离大于两倍的最小距离时,即认为匹配有误.但有时候最小距离会非常小,设置一个经验值30作为下限.
-    std::vector< DMatch > good_matches;
-    for ( int i = 0; i < descriptors_1.rows; i++ )
-    {
-        if ( matches[i].distance <= max ( 2*min_dist, 30.0 ) )
-        {
-            good_matches.push_back ( matches[i] );
-        }
-    }
+//     //-- 第五步:绘制匹配结果
+//     Mat img_match;
+//     Mat img_goodmatch;
+//     printf("ORB detect cost %f ms \n", (1000*(cv::getTickCount() - t) / cv::getTickFrequency()));
+//     cout<<"good_match = "<<good_matches.size()<<endl;
 
-    //-- 第五步:绘制匹配结果
-    Mat img_match;
-    Mat img_goodmatch;
-    printf("ORB detect cost %f ms \n", (1000*(cv::getTickCount() - t) / cv::getTickFrequency()));
-    cout<<"good_match = "<<good_matches.size()<<endl;
+//     std::vector<cv::Point2d> points1,points2;
+//     std::vector< DMatch > good_matches2;
+//     std::vector<cv::Point3d> v_3DPoints;
+//     for ( int i = 0; i < ( int ) good_matches.size(); i++ )
+//     {
+//         ///
+//         if(img_depth.at<ushort>(keypoints_1[good_matches[i].queryIdx].pt)/5000!=0 &&
+//          !isnan( img_depth.at<ushort>(keypoints_1[good_matches[i].queryIdx].pt)) &&
+//          !isinf( img_depth.at<ushort>(keypoints_1[good_matches[i].queryIdx].pt)))
+//         {
+//             points1.push_back(keypoints_1[good_matches[i].queryIdx].pt);
+//             points2.push_back(keypoints_2[good_matches[i].trainIdx].pt);
+//             good_matches2.emplace_back(good_matches[i]);
 
-    std::vector<cv::Point2d> points1,points2;
-    std::vector< DMatch > good_matches2;
-    std::vector<cv::Point3d> v_3DPoints;
-    for ( int i = 0; i < ( int ) good_matches.size(); i++ )
-    {
-        ///
-        if(img_depth.at<ushort>(keypoints_1[good_matches[i].queryIdx].pt)/5000!=0 &&
-         !isnan( img_depth.at<ushort>(keypoints_1[good_matches[i].queryIdx].pt)) &&
-         !isinf( img_depth.at<ushort>(keypoints_1[good_matches[i].queryIdx].pt)))
-        {
-            points1.push_back(keypoints_1[good_matches[i].queryIdx].pt);
-            points2.push_back(keypoints_2[good_matches[i].trainIdx].pt);
-            good_matches2.emplace_back(good_matches[i]);
+//             //求解3D点坐标，参见TUM数据集
+//             cv::Point3d temp;
+//             double  u=keypoints_1[good_matches[i].queryIdx].pt.x;
+//             double v=keypoints_1[good_matches[i].queryIdx].pt.y;
+//             temp.z=img_depth.at<ushort>(keypoints_1[good_matches[i].queryIdx].pt)/5000;
+//             //if(temp.z==0) temp.z = 1;
+//             temp.x=(u-camMatrix(0,2))*temp.z/camMatrix(0,0);
+//             temp.y=(v-camMatrix(1,2))*temp.z/camMatrix(1,1);
+//             v_3DPoints.emplace_back(temp);
+//         }
+//     }
+//     //cout<<"points1.size:"<<points1.size()<<endl;
+//     //cout<<"points2.size:"<<points2.size()<<endl;
+//     cout<<"v_3DPoints.size:"<<v_3DPoints.size()<<endl;
+//     //使用OpenCV提供的代数方法求解：2D-2D
+//     Point2d principal_point ( 319.5, 239.5);	//相机光心, TUM dataset标定值
+//     double focal_length = 525;			        //相机焦距, TUM dataset标定值
+//     Mat essential_matrix;
+//     essential_matrix = findEssentialMat ( points1, points2, focal_length, principal_point );
+//     cv::Mat R,tt;
+//     recoverPose ( essential_matrix, points1, points2, R, tt, focal_length, principal_point );
+//     cout<<"R is "<<endl<<R<<endl;
+//     cout<<"t is "<<endl<<tt<<endl;
+//     // -- 开始BA优化求解：3D-2D
+//     Eigen::Matrix<double,4,4> init;
+//     init.setIdentity();
+//     bundleAdjustment(v_3DPoints,points2,init,img_2);
 
-            //求解3D点坐标，参见TUM数据集
-            cv::Point3d temp;
-            double  u=keypoints_1[good_matches[i].queryIdx].pt.x;
-            double v=keypoints_1[good_matches[i].queryIdx].pt.y;
-            temp.z=img_depth.at<ushort>(keypoints_1[good_matches[i].queryIdx].pt)/5000;
-            //if(temp.z==0) temp.z = 1;
-            temp.x=(u-camMatrix(0,2))*temp.z/camMatrix(0,0);
-            temp.y=(v-camMatrix(1,2))*temp.z/camMatrix(1,1);
-            v_3DPoints.emplace_back(temp);
-        }
-    }
-    //cout<<"points1.size:"<<points1.size()<<endl;
-    //cout<<"points2.size:"<<points2.size()<<endl;
-    cout<<"v_3DPoints.size:"<<v_3DPoints.size()<<endl;
-    //使用OpenCV提供的代数方法求解：2D-2D
-    Point2d principal_point ( 319.5, 239.5);	//相机光心, TUM dataset标定值
-    double focal_length = 525;			        //相机焦距, TUM dataset标定值
-    Mat essential_matrix;
-    essential_matrix = findEssentialMat ( points1, points2, focal_length, principal_point );
-    cv::Mat R,tt;
-    recoverPose ( essential_matrix, points1, points2, R, tt, focal_length, principal_point );
-    cout<<"R is "<<endl<<R<<endl;
-    cout<<"t is "<<endl<<tt<<endl;
-    // -- 开始BA优化求解：3D-2D
-    Eigen::Matrix<double,4,4> init;
-    init.setIdentity();
-    bundleAdjustment(v_3DPoints,points2,init,img_2);
-
-    return 0;
-}
+//     return 0;
+// }
+#endif

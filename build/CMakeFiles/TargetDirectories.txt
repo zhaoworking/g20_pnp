@@ -1,3 +1,3 @@
-/home/liushiqi/ClionProjects/BA/build/CMakeFiles/rebuild_cache.dir
-/home/liushiqi/ClionProjects/BA/build/CMakeFiles/BA.dir
-/home/liushiqi/ClionProjects/BA/build/CMakeFiles/edit_cache.dir
+/home/caichicken/helloworld/tqzhao/pnp_by_BA/build/CMakeFiles/BA.dir
+/home/caichicken/helloworld/tqzhao/pnp_by_BA/build/CMakeFiles/edit_cache.dir
+/home/caichicken/helloworld/tqzhao/pnp_by_BA/build/CMakeFiles/rebuild_cache.dir
