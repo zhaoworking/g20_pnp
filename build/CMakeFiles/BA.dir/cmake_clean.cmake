@@ -2,7 +2,6 @@ file(REMOVE_RECURSE
   "BA"
   "BA.pdb"
   "CMakeFiles/BA.dir/pnpg2o.cpp.o"
-  "CMakeFiles/BA.dir/pnpg2o.cpp.o.d"
 )
 
 # Per-language clean rules from dependency scanning.
